@@ -1,3 +1,13 @@
+## AI Usage
+
+I used Claude Code throughout this project mainly for two things: setting up and running reproduction/verification tests against the actual code, and getting detailed explanations of what each function does before I relied on it.
+
+**Detailed function explanations.** Before working on any bug, I had Claude go through each service file and explain what every function does — not just a one-line summary, but what it returns, what it assumes about its inputs, and what could cause it to behave unexpectedly. This is how I understood things like the routes → services pattern (every route delegates immediately to a service function) and how `add_to_playlist()` in `notification_service.py` works, which became the reference pattern for finding the missing notification in Issue #4.
+
+**Setting up and running tests.** For every bug, Claude wrote small reproduction scripts (Python shell / app-context scripts, not part of the committed test suite) to confirm the bug before any fix, and follow-up scripts to verify the fix afterward on both sides of the relevant boundary condition — e.g. Saturday vs. Sunday for the streak bug, 11:59pm vs. 12:01am UTC for the feed bug, and a 1-song playlist for the playlist bug. For Issue #3 (search duplicates), Claude's test scripts were also what surfaced a non-obvious detail: the obvious fix (`.distinct()`) didn't look necessary from a normal test, because SQLAlchemy's legacy Query API silently de-duplicates results — Claude had to write a raw-SQL test to prove the underlying duplicate rows were still there. I reviewed each script and its output myself before accepting any fix as verified, and ran the full `pytest tests/` suite after each change to confirm nothing else broke.
+
+---
+
 /instance folder
     mixtape.db - contains database and contents
 
@@ -125,3 +135,11 @@ How you found the root cause — README pointed to `playlist_service.py` for thi
 The root cause — `get_playlist_songs()` queries and orders songs correctly, but the return statement applies `songs[:-1]`, which unconditionally drops the last item of the list before returning it. For a playlist with N songs, only N-1 are ever returned — the song in the last position is silently omitted every time, regardless of playlist length.
 
 Fix and side-effect check — Changed `songs[:-1]` to `songs` so the full ordered list is returned. Verified on both sides of the boundary: an existing 7-song playlist now correctly returns 7 songs including "Free Throws" (previously missing), and a newly created 1-song playlist now correctly returns that 1 song instead of an empty list (previously the most severe case of this bug, where a single-song playlist appeared completely empty). Ran `pytest tests/` — all 13 tests pass, including `test_playlist_returns_all_songs` and `test_playlist_returns_songs_in_order`, which were specifically written to catch this bug and were failing before the fix.
+
+---
+
+## Commit History
+
+Screenshot of `git log --oneline` on the `bugfix/mixtape` branch, showing one commit per bug fix:
+
+![git log --oneline on bugfix/mixtape](./git%20log%20online.png)
