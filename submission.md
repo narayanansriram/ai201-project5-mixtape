@@ -8,6 +8,8 @@ I used Claude Code throughout this project mainly for two things: setting up and
 
 ---
 
+## Codebase Map
+
 /instance folder
     mixtape.db - contains database and contents
 
@@ -21,14 +23,14 @@ I used Claude Code throughout this project mainly for two things: setting up and
                 - GET to get playlist by playlist_id
                 - GET songs in a playlist
                 - POST to add songs to a playlist
-    
+
     songs.py - contains routes for
                 - GET search
                 - GET for song details
                 - POST to rate song
                 - POST to mark listening of a song
-  
-    users.py - contains routes for 
+
+    users.py - contains routes for
                 - GET user by user_id
                 - GET user streak
                 - GET notifications for a user
@@ -44,19 +46,19 @@ services/ folder
                 - rate_song - saves user's rating for a song
                 - get_notifications - retrieves user notifications
                 - mark_as_read - marks notifications as read
-    playlist_service - contains methods
+    playlist_service.py - contains methods
                 - create_playlist - creates a playlist
                 - get_playlist_songs - gets playlist songs
                 - get_playlist - gets playlist metadata without songs
                 - get_user_playlists - gets playlists created by a user
-    search_service - contains methods
+    search_service.py - contains methods
                 - search_songs - searches for songs by title or artist
                 - get_song - fetches song by id
-    streak_service - contains methods
+    streak_service.py - contains methods
                 - record_listening_event - records the user and song and updates streak
                 - update_listening_streak - updates user's listening streak based on their last listening date
                 - get_streak - retrieves streak
-    
+
 models.py - houses all the database models
     - generate_uuid - generates unique user id
     Association tables
@@ -73,13 +75,16 @@ models.py - houses all the database models
         - Playlist - columns are name, created_by, created_at, is_collaborative
         - Notification - columns are user_id, notification_type, body, created_at, read
 Traces
-- get request to streak, user id provided GET /users/<user_id>/streak -> calls get_streak in streak_service -> queries db to get user's listening streak using user_id
-- create playlist where in post method is used POST /playlists/ -> calls create_playlist in playlist_service -> creates a Playlist entry in db, returns a dict -> dict jsonified to caller
+- GET /users/<user_id>/streak → calls get_streak in streak_service → queries db to get user's listening streak using user_id
+- POST /playlists/ → calls create_playlist in playlist_service → creates a Playlist entry in db, returns a dict → dict jsonified to caller
 - POST /playlists/<playlist_id>/songs → add_to_playlist() → creates the playlist entry → calls create_notification() → {adder.username} added your song '{song.title}' to the playlist '{playlist.name}'.
 
 Pattern
 Router catches requests like GET, POST. Services contain methods that perform database operations -- all called from router methods. Some service functions also trigger side effects like notifications by calling other service functions directly like add_to_playlist calling create_notification
 
+---
+
+## Root Cause Analysis
 
 BUG 1:
 Issue number and title — #1 — My listening streak keeps resetting
@@ -142,4 +147,4 @@ Fix and side-effect check — Changed `songs[:-1]` to `songs` so the full ordere
 
 Screenshot of `git log --oneline` on the `bugfix/mixtape` branch, showing one commit per bug fix:
 
-![git log --oneline on bugfix/mixtape](./git%20log%20online.png)
+![git log --oneline on bugfix/mixtape](./git%20log%20oneline.png)
